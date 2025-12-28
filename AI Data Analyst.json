@@ -1,0 +1,303 @@
+{
+  "name": "data2",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -624,
+        -208
+      ],
+      "id": "7e21e1ac-1e70-4f53-adaf-9a61fc55cf8d",
+      "name": "When chat message received",
+      "webhookId": "f446a717-f4ae-4690-925c-f756d87e6266"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -512,
+        -32
+      ],
+      "id": "c15f365e-6f05-435f-bd46-9f413446f120",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "MAq3iXRQxI8oP11f",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -320,
+        -48
+      ],
+      "id": "15423b56-d569-4d2a-92ec-44c4ba755aea",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1WjBIwxM1ZZyjivJF9qUPu3bNBiWtieYJ6Q4nLcThCcI",
+          "mode": "list",
+          "cachedResultName": "GDP",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WjBIwxM1ZZyjivJF9qUPu3bNBiWtieYJ6Q4nLcThCcI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 674511973,
+          "mode": "list",
+          "cachedResultName": "Life Expectancy",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WjBIwxM1ZZyjivJF9qUPu3bNBiWtieYJ6Q4nLcThCcI/edit#gid=674511973"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        -176,
+        -32
+      ],
+      "id": "7ed7b48b-a8f5-4f66-a856-ecb2041fbb51",
+      "name": "Get row(s) in sheet in Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "EtfEwUOiShVN2wKu",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the raw output string from the previous node\nconst rawOutput = items[0].json.output;\n\n// Parse the JSON string inside \"output\"\nconst parsed = JSON.parse(rawOutput);\n\n// Separate labels and values\nconst labels = parsed.labels.map(l => String(l));   // optional: cast to string\nconst values = parsed.values.map(v => Number(v));   // ensure numbers\n\nreturn [\n  {\n    json: {\n      labels,\n      values\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -48,
+        -208
+      ],
+      "id": "82e9693d-e991-416f-be07-d6a36df20aae",
+      "name": "Cleaned Data"
+    },
+    {
+      "parameters": {
+        "jsCode": "const labels = $(\"Cleaned Data\").first().json.labels;\nconst values = $(\"Cleaned Data\").first().json.values;\n\nconst cleanedLabels = labels.map(l => String(l));\nconst cleanedValues = values.map(v => Number(v));\n\nconst configLine = {\n  type: 'line',\n  data: {\n    labels: cleanedLabels,\n    datasets: [{\n      label: \"Amount\",\n      data: cleanedValues,\n      borderWidth: 3,\n      pointStyle: \"circle\"\n    }]\n  },\n  options: {\n    scales: {\n      y: { beginAtZero: true }\n    }\n  }\n};\n\nconst configBar = {\n  type: \"bar\",\n  data: {\n    labels: cleanedLabels,\n    datasets: [{\n      label: \"Amount\",\n      data: cleanedValues,\n      borderWidth: 3\n    }]\n  },\n  options: {\n    scales: {\n      y: { beginAtZero: true }\n    }\n  }\n};\n\nconst configPie = {\n  type: \"pie\",\n  data: {\n    labels: cleanedLabels,\n    datasets: [{\n      label: \"Amount\",\n      data: cleanedValues\n    }]\n  }\n};\n\nconst chartLineUrl = `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(configLine))}`;\nconst chartBarUrl = `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(configBar))}`;\nconst chartPieUrl = `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(configPie))}`;\n\nreturn [\n  {\n    json: {\n      ...items[0].json,\n      chartLineUrl,\n      chartBarUrl,\n      chartPieUrl\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        512,
+        -208
+      ],
+      "id": "155daeb8-5598-4f93-b8fe-95448c55abd1",
+      "name": "Write HTML"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "=You are a data visualization  assistant.\n\nThe user will give a request like:\n - \"what is the trend of life expectancy over the years?\"\n -\"what is the average life expectancy?\"\n\n\n\nYour tasks:\n\n1. select the right data filters (like year, life expectancy, rate of change) based on user request.\n\n2. Prepare two arrays: one for labels  and one for numeric values\n\n3. Always return **only* a valid json object (no markdown, no explanation, no code block)\n\n\nYou must return only valid json, without any markdown, prefix,backticks or extra text.\n\nExample output:\n\n{'labels':['---'],'values':[123,456]}\n\nDo not include any explanation or formating\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -400,
+        -208
+      ],
+      "id": "9488bce4-61f7-4090-982f-6a6493fb073e",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        224,
+        -32
+      ],
+      "id": "3a1422ef-db5b-4262-8bde-bf72149f562d",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "QWjOgmDP9uXj62SV",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('When chat message received').item.json.chatInput }}{{ $('AI Agent').item.json.output }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are a data analyst assistant.   You will receive two arrays:  -An array of item label e.g  Date -An array of numeric values e.g lif expectancy   Your task is to analyze this dataset and generate a clear natural language summary suitable for inclusion in a professional Email.   Style:  -Profesional Polished English -3-b concise English -No formating, markdown, bulletpoints - plain text only  Example: \"Based on the provided data, life expectancy shows a steady upward trend across the observed years, indicating consistent improvements in overall health outcomes over time. While there are minor year-to-year fluctuations, the general pattern reflects sustained long-term growth rather than short-term volatility. This trend suggests that factors such as improved healthcare access and living conditions have had a positive cumulative impact.\"   Do not output JSON or technical data structure-plain English narative only"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        128,
+        -208
+      ],
+      "id": "41b6a56c-bffe-45a2-9f5f-4a135b29cfe5",
+      "name": "Write Report"
+    },
+    {
+      "parameters": {
+        "sendTo": "akpan1653@gmail.com",
+        "subject": "={{ $('When chat message received').item.json.chatInput }}",
+        "message": "=<div style=\"font-family: Arial, sans-serif; color: #333;\">\n  <h2>Data Analysis Summary</h2>\n\n{{ $json.text }}\n</div>\n\n<table cellspacing=\"10\" cellpadding=\"0\" border=\"0\" style=\"width: 100%;\">\n  <tr>\n    <td align=\"center\" valign=\"top\" style=\"width: 33%;\">\n      <h3>Line Chart</h3>\n      <img src=\"{{ $json.chartLineUrl }}\" style=\"max-width: 100%; border: 1px solid #ddd; border-radius: 4px;\">\n    </td>\n\n    <td align=\"center\" valign=\"top\" style=\"width: 33%;\">\n      <h3>Pie Chart</h3>\n      <img src=\"{{ $json.chartPieUrl }}\" style=\"max-width: 100%; border: 1px solid #ddd; border-radius: 4px;\">\n    </td>\n\n    <td align=\"center\" valign=\"top\" style=\"width: 33%;\">\n      <h3>Bar Chart</h3>\n      <img src=\"{{ $json.chartBarUrl }}\" style=\"max-width: 100%; border: 1px solid #ddd; border-radius: 4px;\">\n    </td>\n  </tr>\n</table>\n\n<p style=\"font-size: 0.9em; color: #888;\">\n  Generated automatically by your AI analysis assistant\n</p>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        768,
+        -208
+      ],
+      "id": "3ef439d4-aa74-4fd2-9488-c62c50f8974d",
+      "name": "Send a message",
+      "webhookId": "98e66478-40b2-4a9a-9fc9-4ae0a8b3ad72",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "I4Vvb74vpMIoMOH2",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet in Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cleaned Data": {
+      "main": [
+        [
+          {
+            "node": "Write Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write HTML": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Cleaned Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Write Report",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Report": {
+      "main": [
+        [
+          {
+            "node": "Write HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "96b4569f-f6e4-4fe9-9518-321ba6e6b148",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e5428a8fe932eaafef9dcb2ee4ccfd50b69ba8fc4311f54201d0f7206ab7ea9c"
+  },
+  "id": "LxsimVvUiVo8ZYfF",
+  "tags": []
+}
